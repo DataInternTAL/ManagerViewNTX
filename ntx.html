@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manager View</title>
+  <link rel="icon" type="image/x-icon" href="/img/logo.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.23.1/dist/powerbi.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #0F1229;
+      color: #fff;
+    }
+
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      background: rgba(30, 36, 74, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      flex-shrink: 0;
+      /* Ganti src di bawah dengan path logo kamu */
+    }
+
+    select {
+      padding: 8px 32px 8px 12px;
+      font-size: 14px;
+      font-family: 'Outfit', sans-serif;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus {
+      border-color: rgba(123, 63, 175, 0.6);
+    }
+
+    select option {
+      background: #1E244A;
+      color: #fff;
+    }
+
+    button {
+      padding: 8px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Outfit', sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, #5B2E8C, #7B3FAF);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    button:hover {
+      opacity: 0.88;
+    }
+
+    #reportContainer {
+      margin-top: 56px;
+      height: calc(100vh - 56px);
+    }
+
+    .error-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 200;
+      padding: 12px 20px;
+      background: rgba(200, 50, 50, 0.9);
+      backdrop-filter: blur(8px);
+      border-radius: 10px;
+      font-size: 14px;
+      color: #fff;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+
+    .error-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <img class="logo" src="img/logo.png" alt="Logo">
+  <h1>Manager View NTX</h1>
+</div>
+
+<div id="reportContainer"></div>
+
+<div class="error-toast" id="errorToast"></div>
+
+<script>
+  let report;
+  let refreshInterval;
+
+  function showError(msg) {
+    const toast = document.getElementById("errorToast");
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3500);
+  }
+
+  async function loadReport(reportId) {
+    try {
+      const res = await fetch(
+        `https://titianapi.vercel.app/api/embed?reportId=${reportId}`
+      );
+
+      if (!res.ok) {
+        showError("Gagal memuat report.");
+        return;
+      }
+
+      const data = await res.json();
+      const models = window['powerbi-client'].models;
+
+      const config = {
+        type: 'report',
+        tokenType: models.TokenType.Embed,
+        accessToken: data.embedToken,
+        embedUrl: data.embedUrl,
+        id: data.reportId,
+      };
+
+      const container = document.getElementById('reportContainer');
+      powerbi.reset(container);
+      report = powerbi.embed(container, config);
+
+      if (refreshInterval) clearInterval(refreshInterval);
+
+      refreshInterval = setInterval(() => {
+        if (document.visibilityState === "visible") {
+          report.refresh();
+        }
+      }, 300000);
+
+    } catch (err) {
+      console.error(err);
+      showError("Terjadi kesalahan saat memuat report.");
+    }
+  }
+
+  async function init() {
+    const reportId = "66122f2f-68a8-476a-a0aa-83bc0d4d6c0f";
+    if (reportId) {
+      loadReport(reportId);
+    }
+  }
+
+  init();
+</script>
+
+</body>
+</html>
